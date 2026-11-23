@@ -28,24 +28,31 @@ Rules:
 const QUESTION_LINE_RE =
   /^(?:what|which|how|when|where|why|who|can|could|do|does|did|is|are|will|would|should|tell me|explain|calculate)\b/i;
 const EXPLICIT_ACTION_RE = /^(?:note|add task|add to[- ]?do|to[- ]?do|todo|task|remind me|remind|please)\b/i;
+const CREATIVE_RE =
+  /\b(poem|poetry|story|song|joke|essay|article|letter|draw|image|picture|design|compose|translate|rewrite|summari[sz]e|explain|write about)\b/i;
+const IMPERATIVE_RE =
+  /^(?:buy|call|message|email|text|send|pay|book|order|finish|prepare|fix|clean|check|collect|meet|talk to|organi[sz]e|arrange|remind|visit|submit|renew|cancel|update|pick up|get|return|replacing|order replacement)\b/i;
+
+function isActionLine(line: string): boolean {
+  if (EXPLICIT_ACTION_RE.test(line)) return true;
+  if (line.includes('?') || QUESTION_LINE_RE.test(line) || CREATIVE_RE.test(line)) return false;
+  return IMPERATIVE_RE.test(line);
+}
 
 export function looksLikeMultiAction(text: string): boolean {
-  const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean);
-  const bullets = lines.filter((line) => /^(?:[-*•]|\d+[.)])\s+/.test(line));
-  const manyLines = lines.length >= 2 || bullets.length >= 2;
-  const chained =
-    text.length > 60 &&
-    /\b(?:before that|after that|also|and then|first|then|additionally)\b/i.test(text);
-  if (!manyLines && !chained) return false;
+  const lines = text
+    .split(/\n+|;\s+/)
+    .map((line) => line.replace(/^(?:\d+[.)]|[-*•])\s*/, '').trim())
+    .filter(Boolean);
+  if (lines.length < 2) return false;
 
-  // Questions are chat, not actions. An explicit command prefix always wins.
-  const explicit = lines.some((line) => EXPLICIT_ACTION_RE.test(line));
-  const questions = lines.filter(
-    (line) => line.includes('?') || QUESTION_LINE_RE.test(line),
-  );
-  if (!explicit && questions.length >= Math.ceil(lines.length / 2)) return false;
+  // An explicit command is always an action, even beside a question.
+  if (lines.some((line) => EXPLICIT_ACTION_RE.test(line))) return true;
 
-  return true;
+  // Only real action lines qualify. A note plus a poem, or questions, are chat.
+  const actionLines = lines.filter(isActionLine);
+  if (actionLines.length < 2) return false;
+  return actionLines.length >= Math.ceil(lines.length * 0.6);
 }
 
 function resolveAction(action: ProposedAction, now: Date): ProposedAction {

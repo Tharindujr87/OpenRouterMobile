@@ -10,6 +10,25 @@ const INPUT = `Pick up Joe from the hospital tomorrow.
 Before that, I have to talk to Ellen, Joe's mom.
 Message Sumali to arrange a shift.`;
 
+test('a note plus a poem request stays in chat in both modes', () => {
+  const input = `this is my first testing note.
+
+Write a poem a bout a man finished his first shed in 20 years`;
+  assert.equal(looksLikeMultiAction(input), false);
+});
+
+test('two real action lines still open the action review', () => {
+  const input = `Pick up Joe from the hospital tomorrow.
+Message Sumali to arrange a shift.`;
+  assert.equal(looksLikeMultiAction(input), true);
+});
+
+test('a single action line plus a poem does not open the review', () => {
+  const input = `Call the plumber tomorrow.
+Write a poem about the shed.`;
+  assert.equal(looksLikeMultiAction(input), false);
+});
+
 test('multi-line questions stay in chat instead of becoming tasks', () => {
   const questions = `What is the day, month and year tomorrow?
 Which week number in the year
