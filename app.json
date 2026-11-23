@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "ORMobile",
+    "slug": "ormobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "ormobile",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ormobile.app"
+    },
+    "android": {
+      "package": "com.ormobile.app"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": []
+  }
+}
