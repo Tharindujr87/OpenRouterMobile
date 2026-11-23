@@ -166,9 +166,10 @@ you add your own accounts:
    before switching devices.
 5. **Web** — Cloudflare Pages is the recommended target: a static export needs no
    server-side functions there, and the free tier has no bandwidth cap or commercial-use
-   restriction. `npm run build:web` produces `dist/`. Then run `npx wrangler login` once
-   and `npm run deploy:web` to upload. Alternatively deploy `dist/` from a Git repo or
-   to Vercel/Netlify.
+   restriction. `npm run build:web` produces `dist/`. Run `npx wrangler login` once, then
+   `npm run deploy:web`. The current live URL is
+   `https://ormobile.wir-app.workers.dev`; add it to Supabase Auth redirect URLs.
+   Alternatively deploy `dist/` from a Git repo or to Vercel/Netlify.
 6. **Phone** — `npm run build:android` or `npm run build:ios` uses EAS. Android needs an
    Expo account; iOS also needs an Apple Developer account. Install the resulting build
    directly for personal use; app-store submission is separate.
