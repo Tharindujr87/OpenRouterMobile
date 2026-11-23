@@ -74,6 +74,7 @@ test('day summary is one line per entry', () => {
     original: 'raw detail',
     summary: 'Spoke with Ellen about the bill',
     tags: ['Ellen'],
+    photos: [],
     createdAt: NOW.getTime(),
     updatedAt: NOW.getTime(),
   };

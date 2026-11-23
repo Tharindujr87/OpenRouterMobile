@@ -7,6 +7,7 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS notes (
   id TEXT PRIMARY KEY,
   body TEXT NOT NULL,
+  photos TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -63,6 +64,7 @@ CREATE TABLE IF NOT EXISTS diary_entries (
   original TEXT NOT NULL,
   summary TEXT NOT NULL,
   tags TEXT NOT NULL,
+  photos TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -118,6 +120,14 @@ function migrate(db: SQLite.SQLiteDatabase): void {
   const messageColumns = db.getAllSync<{ name: string }>('PRAGMA table_info(messages)');
   if (!messageColumns.some((column) => column.name === 'route_info')) {
     db.execSync('ALTER TABLE messages ADD COLUMN route_info TEXT');
+  }
+  const noteColumns = db.getAllSync<{ name: string }>('PRAGMA table_info(notes)');
+  if (!noteColumns.some((column) => column.name === 'photos')) {
+    db.execSync('ALTER TABLE notes ADD COLUMN photos TEXT');
+  }
+  const diaryColumns = db.getAllSync<{ name: string }>('PRAGMA table_info(diary_entries)');
+  if (!diaryColumns.some((column) => column.name === 'photos')) {
+    db.execSync('ALTER TABLE diary_entries ADD COLUMN photos TEXT');
   }
 }
 

@@ -30,10 +30,12 @@ import {
   localDay,
 } from '../lib/diary';
 import { searchDiary } from '../lib/diarySearch';
+import { pickPhotos } from '../lib/photos';
 import { colors, radius, spacing } from '../theme';
 import {
   Card,
   Muted,
+  PhotoStrip,
   ReadButton,
   Screen,
   ScreenHeader,
@@ -61,6 +63,7 @@ export default function DiaryScreen({ refreshKey, bump }: Props) {
   const [chatInput, setChatInput] = useState('');
   const [chatLog, setChatLog] = useState<DiaryTurn[]>([]);
   const [saving, setSaving] = useState(false);
+  const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
   const [followUp, setFollowUp] = useState<{ entryId: string; questions: string[] } | null>(null);
 
   const entries = getDiaryEntries(day);
@@ -70,6 +73,12 @@ export default function DiaryScreen({ refreshKey, bump }: Props) {
     setSummary(saved?.content ?? deterministicDaySummary(day, getDiaryEntries(day)));
     setExpanded(null);
   }, [day, refreshKey]);
+
+  async function addPendingPhotos() {
+    const picked = await pickPhotos();
+    if (!picked.length) return;
+    setPendingPhotos((current) => [...current, ...picked]);
+  }
 
   function addTurn(role: DiaryTurn['role'], body: string) {
     setChatLog((current) => [
@@ -111,7 +120,7 @@ export default function DiaryScreen({ refreshKey, bump }: Props) {
 
   async function submit() {
     const value = chatInput.trim();
-    if (!value || saving) return;
+    if ((!value && pendingPhotos.length === 0) || saving) return;
     setChatInput('');
     addTurn('user', value);
 
@@ -149,8 +158,10 @@ export default function DiaryScreen({ refreshKey, bump }: Props) {
       ...cleaned,
       day,
       body: cleaned.body.trim(),
-      summary: cleaned.summary.trim() || cleaned.body.trim().slice(0, 100),
+      summary: cleaned.summary.trim() || cleaned.body.trim().slice(0, 100) || 'Photo entry',
+      photos: pendingPhotos,
     });
+    setPendingPhotos([]);
     deleteDiarySummary(day);
     setSummary(deterministicDaySummary(day, getDiaryEntries(day)));
     addTurn(
@@ -270,8 +281,26 @@ export default function DiaryScreen({ refreshKey, bump }: Props) {
                   <Text style={styles.detailText}>{entry.body}</Text>
                   <Text style={styles.detailLabel}>YOUR WORDS</Text>
                   <Text style={styles.detailOriginal}>{entry.original}</Text>
+                  <PhotoStrip
+                    uris={entry.photos}
+                    onRemove={(uri) => {
+                      updateDiaryEntry(entry.id, {
+                        photos: entry.photos.filter((item) => item !== uri),
+                      });
+                      bump();
+                    }}
+                  />
                   <View style={styles.rowWrap}>
                     <ReadButton text={entry.body} />
+                    <SmallButton
+                      title="Add photo"
+                      onPress={async () => {
+                        const picked = await pickPhotos();
+                        if (!picked.length) return;
+                        updateDiaryEntry(entry.id, { photos: [...entry.photos, ...picked] });
+                        bump();
+                      }}
+                    />
                     <SmallButton
                       title="Delete"
                       tone="danger"
@@ -296,7 +325,19 @@ export default function DiaryScreen({ refreshKey, bump }: Props) {
           <SmallButton title="Skip" onPress={() => setFollowUp(null)} />
         </View>
       ) : null}
+      {pendingPhotos.length ? (
+        <View style={styles.pendingStrip}>
+          <PhotoStrip
+            uris={pendingPhotos}
+            onRemove={(uri) => setPendingPhotos((current) => current.filter((item) => item !== uri))}
+          />
+        </View>
+      ) : null}
       <View style={styles.composer}>
+        <SmallButton
+          title="Photo"
+          onPress={() => void addPendingPhotos()}
+        />
         <TextInput
           style={styles.input}
           value={chatInput}
@@ -311,7 +352,7 @@ export default function DiaryScreen({ refreshKey, bump }: Props) {
         <Pressable
           onPress={() => void submit()}
           accessibilityRole="button"
-          style={[styles.send, (!chatInput.trim() || saving) && styles.sendDisabled]}
+          style={[styles.send, ((!chatInput.trim() && pendingPhotos.length === 0) || saving) && styles.sendDisabled]}
         >
           {saving ? (
             <ActivityIndicator color="#06211F" size="small" />
@@ -362,6 +403,7 @@ const styles = StyleSheet.create({
   detailLabel: { color: colors.muted, fontSize: 10, fontWeight: '800', letterSpacing: 1, marginTop: spacing.sm },
   detailText: { color: colors.text, fontSize: 15, lineHeight: 21 },
   detailOriginal: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  pendingStrip: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, paddingHorizontal: spacing.md, paddingTop: spacing.sm },
   input: {
     flex: 1,

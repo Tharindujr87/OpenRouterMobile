@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -238,6 +239,35 @@ export function ReadButton({ text }: { text: string }) {
   );
 }
 
+export function PhotoStrip({
+  uris,
+  onRemove,
+}: {
+  uris: string[];
+  onRemove?: (uri: string) => void;
+}) {
+  if (uris.length === 0) return null;
+  return (
+    <ScrollView horizontal style={styles.photoStrip} contentContainerStyle={styles.photoStripContent}>
+      {uris.map((uri) => (
+        <View key={uri} style={styles.photoItem}>
+          <Image source={{ uri }} style={styles.photoThumb} resizeMode="cover" />
+          {onRemove ? (
+            <Pressable
+              onPress={() => onRemove(uri)}
+              accessibilityRole="button"
+              accessibilityLabel="Remove photo"
+              style={styles.photoRemove}
+            >
+              <Text style={styles.photoRemoveText}>×</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+
 export function EmptyState({ children }: { children: React.ReactNode }) {
   return (
     <View style={styles.empty}>
@@ -314,5 +344,11 @@ const styles = StyleSheet.create({
   smallDangerText: { color: colors.danger },
   tag: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
   tagText: { fontSize: 11, fontWeight: '700' },
+  photoStrip: { marginTop: spacing.sm },
+  photoStripContent: { gap: spacing.sm, alignItems: 'center' },
+  photoItem: { position: 'relative' },
+  photoThumb: { width: 72, height: 72, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.border },
+  photoRemove: { position: 'absolute', top: -6, right: -6, width: 24, height: 24, borderRadius: 12, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
+  photoRemoveText: { color: '#fff', fontSize: 16, fontWeight: '700', lineHeight: 18 },
   empty: { paddingVertical: spacing.lg, alignItems: 'center' },
 });

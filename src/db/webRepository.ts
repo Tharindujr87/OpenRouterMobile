@@ -57,15 +57,17 @@ export function searchNotes(query: string): Note[] {
   return getNotes().filter((note) => note.body.toLowerCase().includes(needle));
 }
 
-export function insertNote(body: string): Note {
+export function insertNote(body: string, photos: string[] = []): Note {
   const now = Date.now();
-  const note: Note = { id: uid(), body, createdAt: now, updatedAt: now };
+  const note: Note = { id: uid(), body, photos, createdAt: now, updatedAt: now };
   write(KEYS.notes, [...getNotes(), note]);
   return note;
 }
 
-export function updateNote(id: string, body: string): void {
-  write(KEYS.notes, getNotes().map((note) => (note.id === id ? { ...note, body, updatedAt: Date.now() } : note)));
+export function updateNote(id: string, body: string, photos?: string[]): void {
+  write(KEYS.notes, getNotes().map((note) => (note.id === id
+    ? { ...note, body, ...(photos === undefined ? {} : { photos }), updatedAt: Date.now() }
+    : note)));
 }
 
 export function deleteNote(id: string): void {
@@ -267,16 +269,17 @@ export function insertDiaryEntry(input: {
   original: string;
   summary: string;
   tags: string[];
+  photos?: string[];
 }): DiaryEntry {
   const now = Date.now();
-  const entry: DiaryEntry = { id: uid(), ...input, createdAt: now, updatedAt: now };
+  const entry: DiaryEntry = { id: uid(), ...input, photos: input.photos ?? [], createdAt: now, updatedAt: now };
   write(KEYS.diary, [...read<DiaryEntry[]>(KEYS.diary, []), entry]);
   return entry;
 }
 
 export function updateDiaryEntry(
   id: string,
-  patch: Partial<Pick<DiaryEntry, 'body' | 'summary' | 'tags'>>,
+  patch: Partial<Pick<DiaryEntry, 'body' | 'summary' | 'tags' | 'photos'>>,
 ): void {
   write(
     KEYS.diary,

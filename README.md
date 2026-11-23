@@ -64,6 +64,9 @@ and manual model selection. Capture commands still run locally and cost nothing.
   on supported phones.
 - **Calendar**: chose a writable calendar in Settings and optionally add a timed
   reminder to it.
+- **Photos on notes and diary entries**: tap **Photos** to pick up to six images from the
+  phone. Thumbnails appear on the note/entry; tap × to remove one. A note can be
+  photo-only. On the phone, images are copied into app storage so they survive restarts.
 - **Read** button on notes and chat replies (text-to-speech, only when tapped).
   Settings → Read aloud controls speed (default 0.9×, about 10% slower) and volume
   (default 100%, the phone's maximum).
@@ -193,7 +196,9 @@ between browsers if you need to.
 - Image and document requests select the right model, but output is still plain chat
   text; file generation is not implemented yet.
 - No public OpenRouter video model is available, so video requests need a custom provider.
-- No cloud sync. Export a backup regularly.
+- No cloud sync. Export a backup regularly. Backups contain photo **references**; on
+  the phone those file paths only work on the same device, so don't expect images to
+  transfer through a cloud restore.
 - Notification actions depend on the phone OS; Focus / Do Not Disturb can still hide alerts.
 - SMS is not implemented (costs money and needs a phone-number flow).
 - On iOS, write-only calendar access may limit calendar selection to a virtual calendar.

@@ -1,4 +1,5 @@
 import { getDb } from './database';
+import { parsePhotos } from '../lib/photos';
 import type {
   ChatMessage,
   ChatSession,
@@ -18,6 +19,7 @@ export function uid(): string {
 interface NoteRow {
   id: string;
   body: string;
+  photos: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -57,6 +59,7 @@ function toNote(row: NoteRow): Note {
   return {
     id: row.id,
     body: row.body,
+    photos: parsePhotos(row.photos),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -117,23 +120,30 @@ export function searchNotes(query: string): Note[] {
   return rows.map(toNote);
 }
 
-export function insertNote(body: string): Note {
+export function insertNote(body: string, photos: string[] = []): Note {
   const now = Date.now();
-  const note: Note = { id: uid(), body, createdAt: now, updatedAt: now };
+  const note: Note = { id: uid(), body, photos, createdAt: now, updatedAt: now };
   getDb().runSync(
-    'INSERT INTO notes (id, body, created_at, updated_at) VALUES (?, ?, ?, ?)',
+    'INSERT INTO notes (id, body, photos, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
     note.id,
     note.body,
+    JSON.stringify(note.photos),
     note.createdAt,
     note.updatedAt,
   );
   return note;
 }
 
-export function updateNote(id: string, body: string): void {
-  getDb().runSync(
-    'UPDATE notes SET body = ?, updated_at = ? WHERE id = ?',
+export function updateNote(id: string, body: string, photos?: string[]): void {
+  const db = getDb();
+  if (photos === undefined) {
+    db.runSync('UPDATE notes SET body = ?, updated_at = ? WHERE id = ?', body, Date.now(), id);
+    return;
+  }
+  db.runSync(
+    'UPDATE notes SET body = ?, photos = ?, updated_at = ? WHERE id = ?',
     body,
+    JSON.stringify(photos),
     Date.now(),
     id,
   );
@@ -412,6 +422,7 @@ interface DiaryRow {
   original: string;
   summary: string;
   tags: string;
+  photos: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -437,6 +448,7 @@ function toDiary(row: DiaryRow): DiaryEntry {
     original: row.original,
     summary: row.summary,
     tags,
+    photos: parsePhotos(row.photos),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -470,6 +482,7 @@ export function insertDiaryEntry(input: {
   original: string;
   summary: string;
   tags: string[];
+  photos?: string[];
 }): DiaryEntry {
   const now = Date.now();
   const entry: DiaryEntry = {
@@ -479,18 +492,20 @@ export function insertDiaryEntry(input: {
     original: input.original,
     summary: input.summary,
     tags: input.tags,
+    photos: input.photos ?? [],
     createdAt: now,
     updatedAt: now,
   };
   getDb().runSync(
-    `INSERT INTO diary_entries (id, day, body, original, summary, tags, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO diary_entries (id, day, body, original, summary, tags, photos, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     entry.id,
     entry.day,
     entry.body,
     entry.original,
     entry.summary,
     JSON.stringify(entry.tags),
+    JSON.stringify(entry.photos),
     entry.createdAt,
     entry.updatedAt,
   );
@@ -499,12 +514,13 @@ export function insertDiaryEntry(input: {
 
 export function updateDiaryEntry(
   id: string,
-  patch: Partial<Pick<DiaryEntry, 'body' | 'summary' | 'tags'>>,
+  patch: Partial<Pick<DiaryEntry, 'body' | 'summary' | 'tags' | 'photos'>>,
 ): void {
   const db = getDb();
   if (patch.body !== undefined) db.runSync('UPDATE diary_entries SET body = ?, updated_at = ? WHERE id = ?', patch.body, Date.now(), id);
   if (patch.summary !== undefined) db.runSync('UPDATE diary_entries SET summary = ?, updated_at = ? WHERE id = ?', patch.summary, Date.now(), id);
   if (patch.tags !== undefined) db.runSync('UPDATE diary_entries SET tags = ?, updated_at = ? WHERE id = ?', JSON.stringify(patch.tags), Date.now(), id);
+  if (patch.photos !== undefined) db.runSync('UPDATE diary_entries SET photos = ?, updated_at = ? WHERE id = ?', JSON.stringify(patch.photos), Date.now(), id);
 }
 
 export function deleteDiaryEntry(id: string): void {
@@ -577,7 +593,7 @@ export function applySnapshot(snapshot: BackupSnapshot): void {
       DELETE FROM memory;
     `);
     for (const note of snapshot.notes) {
-      db.runSync('INSERT INTO notes (id, body, created_at, updated_at) VALUES (?, ?, ?, ?)', note.id, note.body, note.createdAt, note.updatedAt);
+      db.runSync('INSERT INTO notes (id, body, photos, created_at, updated_at) VALUES (?, ?, ?, ?, ?)', note.id, note.body, JSON.stringify(note.photos ?? []), note.createdAt, note.updatedAt);
     }
     for (const task of snapshot.tasks) {
       db.runSync(
@@ -597,7 +613,7 @@ export function applySnapshot(snapshot: BackupSnapshot): void {
       db.runSync('INSERT INTO messages (id, role, body, created_at, linked_id, session_id, route_info) VALUES (?, ?, ?, ?, ?, ?, ?)', message.id, message.role, message.body, message.createdAt, message.linkedId, message.sessionId, message.routeInfo);
     }
     for (const entry of snapshot.diary) {
-      db.runSync('INSERT INTO diary_entries (id, day, body, original, summary, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', entry.id, entry.day, entry.body, entry.original, entry.summary, JSON.stringify(entry.tags), entry.createdAt, entry.updatedAt);
+      db.runSync('INSERT INTO diary_entries (id, day, body, original, summary, tags, photos, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', entry.id, entry.day, entry.body, entry.original, entry.summary, JSON.stringify(entry.tags), JSON.stringify(entry.photos ?? []), entry.createdAt, entry.updatedAt);
     }
     for (const item of snapshot.diarySummaries) {
       db.runSync('INSERT INTO diary_summaries (day, content, generated_at, model) VALUES (?, ?, ?, ?)', item.day, item.content, item.generatedAt, item.model);

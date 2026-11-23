@@ -14,12 +14,14 @@ import {
   searchNotes,
   updateNote,
 } from '../db/repository';
+import { pickPhotos } from '../lib/photos';
 import { colors, radius, spacing } from '../theme';
 import {
   Body,
   Card,
   EmptyState,
   Muted,
+  PhotoStrip,
   PrimaryButton,
   ReadButton,
   Screen,
@@ -41,15 +43,31 @@ export default function NotesScreen({ refreshKey, navigate, bump }: Props) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
   const [newNote, setNewNote] = useState('');
+  const [pendingPhotos, setPendingPhotos] = useState<string[]>([]);
 
   const notes = query.trim() ? searchNotes(query.trim()) : getNotes();
   const selected = notes.find((note) => note.id === selectedId) ?? null;
 
   function quickAdd() {
     const body = newNote.trim();
-    if (!body) return;
-    insertNote(body);
+    if (!body && pendingPhotos.length === 0) return;
+    insertNote(body, pendingPhotos);
     setNewNote('');
+    setPendingPhotos([]);
+    bump();
+  }
+
+  async function addPendingPhotos() {
+    const picked = await pickPhotos();
+    if (!picked.length) return;
+    setPendingPhotos((current) => [...current, ...picked]);
+  }
+
+  async function addPhotosToNote() {
+    if (!selected) return;
+    const picked = await pickPhotos();
+    if (!picked.length) return;
+    updateNote(selected.id, selected.body, [...selected.photos, ...picked]);
     bump();
   }
 
@@ -72,9 +90,20 @@ export default function NotesScreen({ refreshKey, navigate, bump }: Props) {
           placeholderTextColor={colors.muted}
           onSubmitEditing={quickAdd}
         />
+        <PhotoStrip
+          uris={pendingPhotos}
+          onRemove={(uri) => setPendingPhotos((current) => current.filter((item) => item !== uri))}
+        />
         <View style={styles.row}>
-          <Muted>Saved immediately, even offline.</Muted>
-          <PrimaryButton title="Add" onPress={quickAdd} disabled={!newNote.trim()} />
+          <SmallButton
+            title="Photos"
+            onPress={() => void addPendingPhotos()}
+          />
+          <PrimaryButton
+            title="Add"
+            onPress={quickAdd}
+            disabled={!newNote.trim() && pendingPhotos.length === 0}
+          />
         </View>
       </Card>
 
@@ -94,6 +123,7 @@ export default function NotesScreen({ refreshKey, navigate, bump }: Props) {
             <Card>
               <Muted>{new Date(note.updatedAt).toLocaleString()}</Muted>
               <Body>{note.body}</Body>
+              <PhotoStrip uris={note.photos} />
             </Card>
           </Pressable>
         ))
@@ -114,6 +144,14 @@ export default function NotesScreen({ refreshKey, navigate, bump }: Props) {
             ) : (
               <Body>{selected?.body}</Body>
             )}
+            <PhotoStrip
+              uris={selected?.photos ?? []}
+              onRemove={(uri) => {
+                if (!selected) return;
+                updateNote(selected.id, selected.body, selected.photos.filter((item) => item !== uri));
+                bump();
+              }}
+            />
             <View style={styles.rowWrap}>
               {editing ? (
                 <PrimaryButton
@@ -135,6 +173,7 @@ export default function NotesScreen({ refreshKey, navigate, bump }: Props) {
                 />
               )}
               {selected ? <ReadButton text={selected.body} /> : null}
+              <SmallButton title="Add photo" onPress={() => void addPhotosToNote()} />
               <SmallButton
                 title="Make task"
                 onPress={() => {

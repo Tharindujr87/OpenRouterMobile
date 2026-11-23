@@ -22,6 +22,7 @@ export interface ParsedCapture {
 export interface Note {
   id: string;
   body: string;
+  photos: string[];
   createdAt: number;
   updatedAt: number;
 }
@@ -71,6 +72,7 @@ export interface DiaryEntry {
   original: string;
   summary: string;
   tags: string[];
+  photos: string[];
   createdAt: number;
   updatedAt: number;
 }

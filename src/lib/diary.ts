@@ -9,6 +9,7 @@ export interface DiaryDraft {
   summary: string;
   tags: string[];
   questions: string[];
+  photos: string[];
 }
 
 const STOPWORDS = new Set([
@@ -60,6 +61,7 @@ export function basicCleanup(raw: string): DiaryDraft {
     summary,
     tags: [],
     questions: meetingQuestions(body),
+    photos: [],
   };
 }
 
@@ -114,7 +116,15 @@ export async function cleanDiaryEntry(
     const questions = Array.isArray(json.questions)
       ? json.questions.filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
       : [];
-    return { day: fallback.day, body, original: raw, summary, tags, questions: questions.length ? questions.slice(0, 3) : fallback.questions };
+    return {
+      day: fallback.day,
+      body,
+      original: raw,
+      summary,
+      tags,
+      questions: questions.length ? questions.slice(0, 3) : fallback.questions,
+      photos: [],
+    };
   } catch {
     return fallback;
   }
