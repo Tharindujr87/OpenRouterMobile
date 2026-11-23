@@ -65,6 +65,8 @@ and manual model selection. Capture commands still run locally and cost nothing.
 - **Calendar**: chose a writable calendar in Settings and optionally add a timed
   reminder to it.
 - **Read** button on notes and chat replies (text-to-speech, only when tapped).
+  Settings → Read aloud controls speed (default 0.9×, about 10% slower) and volume
+  (default 100%, the phone's maximum).
 - **Export**: Markdown export for OpenCode and a full JSON backup.
 - **Daily review**: local notification at a chosen time; the review itself is built
   on the phone and works offline.

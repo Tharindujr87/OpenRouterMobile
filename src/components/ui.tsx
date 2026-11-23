@@ -11,6 +11,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import * as Speech from 'expo-speech';
+import { getMeta } from '../db/repository';
 import { colors, radius, spacing } from '../theme';
 
 export function Screen({
@@ -216,13 +217,22 @@ export function Tag({
   );
 }
 
+function speechNumber(key: string, fallback: number, min: number, max: number): number {
+  const value = Number.parseFloat(getMeta(key, String(fallback)));
+  return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+}
+
 export function ReadButton({ text }: { text: string }) {
   return (
     <SmallButton
       title="Read"
       onPress={() => {
-        Speech.stop();
-        void Speech.speak(text, { language: 'en' });
+        void Speech.stop();
+        void Speech.speak(text, {
+          language: 'en',
+          rate: speechNumber('speechRate', 0.9, 0.5, 2),
+          volume: speechNumber('speechVolume', 1, 0, 1),
+        });
       }}
     />
   );

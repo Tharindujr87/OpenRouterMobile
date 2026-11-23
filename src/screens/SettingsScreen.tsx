@@ -40,6 +40,7 @@ import {
   Card,
   Muted,
   PrimaryButton,
+  ReadButton,
   Screen,
   ScreenHeader,
   SectionTitle,
@@ -275,6 +276,11 @@ export default function SettingsScreen({ permission, setPermission, bump }: Prop
       </Card>
 
       <Card>
+        <SectionTitle>Read aloud</SectionTitle>
+        <SpeechSettings />
+      </Card>
+
+      <Card>
         <SectionTitle>Notifications</SectionTitle>
         <View style={styles.row}>
           <Body>Status</Body>
@@ -439,6 +445,42 @@ export default function SettingsScreen({ permission, setPermission, bump }: Prop
       {status ? <Muted>{status}</Muted> : null}
       <View style={{ height: 24 }} />
     </Screen>
+  );
+}
+
+function SpeechSettings() {
+  const [rate, setRate] = useState(() => Number.parseFloat(getMeta('speechRate', '0.9')) || 0.9);
+  const [volume, setVolume] = useState(() => Number.parseFloat(getMeta('speechVolume', '1')) || 1);
+
+  function adjust(key: string, value: number, setter: (value: number) => void, min: number, max: number) {
+    const next = Math.min(max, Math.max(min, Math.round(value * 10) / 10));
+    setter(next);
+    setMeta(key, String(next));
+  }
+
+  return (
+    <>
+      <View style={styles.row}>
+        <Body>Speed</Body>
+        <View style={styles.rowWrap}>
+          <SmallButton title="−" onPress={() => adjust('speechRate', rate - 0.1, setRate, 0.5, 2)} />
+          <Muted>{rate.toFixed(1)}×{rate < 1 ? ' (slower)' : rate > 1 ? ' (faster)' : ''}</Muted>
+          <SmallButton title="+" onPress={() => adjust('speechRate', rate + 0.1, setRate, 0.5, 2)} />
+        </View>
+      </View>
+      <View style={styles.row}>
+        <Body>Volume</Body>
+        <View style={styles.rowWrap}>
+          <SmallButton title="−" onPress={() => adjust('speechVolume', volume - 0.1, setVolume, 0, 1)} />
+          <Muted>{Math.round(volume * 100)}%</Muted>
+          <SmallButton title="+" onPress={() => adjust('speechVolume', volume + 0.1, setVolume, 0, 1)} />
+        </View>
+      </View>
+      <Muted>Volume cannot go above 100% — that is the phone's maximum. 0.9× speaks about 10% slower.</Muted>
+      <View style={styles.rowWrap}>
+        <ReadButton text="This is how your notes will sound when you tap Read." />
+      </View>
+    </>
   );
 }
 
